@@ -1,0 +1,22 @@
+MODULE Interruption
+   
+    TRAP TrapBouton1
+        IF DOutput(ABB_0_DO1)=0 THEN
+           SetDO ABB_0_DO1,1;
+        ELSE
+            SetDO ABB_0_DO1,0;
+        ENDIF
+        
+    ENDTRAP
+    
+    TRAP TrapBouton2
+        IF DOutput(ABB_0_DO2)=0 THEN
+           SetDO ABB_0_DO2,1;
+           !OR_VGX_GRIP 50,50,1;
+        ELSE
+            SetDO ABB_0_DO2,0;
+            !OR_VGX_RELASE 1,1;
+        ENDIF
+        
+    ENDTRAP
+ENDMODULE

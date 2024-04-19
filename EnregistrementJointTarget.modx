@@ -1,0 +1,35 @@
+MODULE EnregistrementJointTarget
+    !!DECLARATION VARIABLE TABLEAU!!!!
+   
+
+    VAR num DistancePosition;
+    VAR robtarget P1;
+    VAR robtarget P2;
+    PERS bool FinEnregistrement := TRUE;
+
+    PROC LancementEnregistrementTarget()
+
+        !TPWrite "Lancement Enregistrement";
+        MyFiles := MyFilesInit;
+        MyFiles{NmbrePosition}.TabPosition := CJointT();
+        ! MyFiles{NmbrePosition}.Actionneur := DOutput(DeclenchementPeinture);
+
+        Add NmbrePosition, 1;
+
+        WHILE ABB_0_DO1 = 1 DO
+            P1 := CalcRobT(CJointT(), tool0);
+            P2 := CalcRobT(MyFiles{NmbrePosition-1}.TabPosition, tool0);
+            DistancePosition := Distance(P1.trans, P2.trans);
+        
+            IF DistancePosition > 1 AND NmbrePosition > 1 THEN
+                MyFiles{NmbrePosition}.TabPosition := CJointT();
+                Add NmbrePosition, 1;
+                AiNmbrePosition := NumToDnum(NmbrePosition);
+                WaitTime 0.5;
+            ENDIF
+        ENDWHILE
+
+        !TPWrite "La trajectoire comporte --> " + ValToStr(NmbrePosition);
+        FinEnregistrement := TRUE;
+    ENDPROC
+ENDMODULE

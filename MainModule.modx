@@ -1,0 +1,175 @@
+MODULE MainModule
+    RECORD SauvegardeMimetisme
+        jointtarget TabPosition;
+        intnum Actionneur;
+        intnum NombrePosition;
+    ENDRECORD
+
+    PERS intnum NmbrePosition;
+    PERS dnum AiNmbrePosition:=51;
+    PERS SauvegardeMimetisme MyFilesChargement{500};
+    PERS SauvegardeMimetisme MyFiles{500};
+    PERS SauvegardeMimetisme MyFilesInit{500};
+    !!DECLARATION VARIABLE TABLEAU!!!!
+
+    PERS intnum NmbrePositionTrajectoireCharge;
+    VAR bool leadthrough:=FALSE;
+    VAR intnum PositionProgramme:=1;
+    PERS string ProgrammeExistant{20,1};
+    PERS string ProgrammeExistantVide{20,1};
+    PERS string NouveauProgramme;
+    PERS string ChoixProgrammeDropDown;
+    VAR bool bActionneurActif:=FALSE;
+    PERS bool bRecord;
+    PERS bool bRecord2;
+    VAR zonedata ZoneSpe;
+    PERS bool bChoixDeplacement;
+
+    !***INTERRUPTION BOUTON****!
+    VAR intnum iButton1;
+    VAR intnum iButton2;
+    VAR dionum front:=1;
+    VAR bool bDemarrage:=TRUE;
+
+    PROC main()
+        AccSet 50,50;
+        ChargementModuleTraj;
+        FOR i FROM 1 TO NmbrePositionTrajectoireCharge-1 DO
+            IF MyFilesChargement{i}.Actionneur=1 and bActionneurActif=FALSE or MyFilesChargement{i}.Actionneur=0 and bActionneurActif=TRUE THEN
+                ZoneSpe:=fine;
+            ELSE
+                ZoneSpe:=z50;
+            endif
+            MoveAbsJ MyFilesChargement{i}.TabPosition\NoEOffs,v500,ZoneSpe,tool0\WObj:=wobj0;
+        ENDFOR
+
+        EXIT;
+
+    ENDPROC
+
+    PROC ChargementModuleTraj()
+        VAR iodev fileChargement;
+        VAR intnum NombrePositionCharge;
+        MyFilesChargement:=MyFilesInit;
+
+        Open "HOME:Trajectoire"\File:=ChoixProgrammeDropDown,fileChargement\Read\Bin;
+        ReadAnyBin fileChargement,MyFilesChargement;
+        Close fileChargement;
+        NmbrePositionTrajectoireCharge:=MyFilesChargement{1}.NombrePosition;
+    ENDPROC
+
+    PROC SauvegardeModuleTraj()
+        !**Sauvegarde AnyBin
+        VAR iodev fileSave;
+        Open "HOME:Trajectoire"\File:=NouveauProgramme,fileSave\Bin;
+        WriteAnyBin fileSave,MyFiles;
+        Close fileSave;
+
+
+    ENDPROC
+
+    !    PROC ActualisationListeProgramme()
+    !        searchdir "HOME:Trajectoire";
+    !    ENDPROC
+
+    PROC searchdir(string dirname)
+        VAR dir directory;
+        VAR string filename;
+        PositionProgramme:=1;
+        ProgrammeExistant:=ProgrammeExistantVide;
+        IF IsFile(dirname\directory) THEN
+            OpenDir directory,dirname;
+
+            WHILE ReadDir(directory,filename) DO
+                IF filename<>".." AND filename<>"." THEN
+                    ProgrammeExistant{PositionProgramme,1}:=filename;
+                    Add PositionProgramme,1;
+                ENDIF
+            ENDWHILE
+
+            CloseDir directory;
+
+        ENDIF
+
+        EXIT;
+    ERROR
+        RAISE ;
+
+    ENDPROC
+
+    PROC Bouton()
+        IF bDemarrage=TRUE THEN
+            CONNECT iButton1 WITH TrapBouton1;
+            ISignalDI Asi1Button1,front,iButton1;
+            CONNECT iButton2 WITH TrapBouton2;
+            ISignalDI Asi1Button2,front,iButton2;
+            bDemarrage:=FALSE;
+        ENDIF
+    ENDPROC
+
+
+    PROC ActivationLead()
+        reset ABB_0_DO1;
+        FinEnregistrement:=FALSE;
+        NmbrePosition:=1;
+        bouton;
+        LumiereAsi 0,255,255,0;
+        WaitDO ABB_0_DO1,1;
+        IF bChoixDeplacement=TRUE THEN
+
+            LumiereAsi 255,255,0,10;
+            !!Activation guidage Articulaire !
+            SetLeadThrough\On\NoStopMove;
+            ! WaitDO ABB_0_DO1,1;
+            FinEnregistrement:=FALSE;
+            NmbrePosition:=1;
+            LancementEnregistrementTarget;
+            bouton;
+            WaitDO ABB_0_DO1,1;
+            SetLeadThrough\off;
+            !StopMove;
+            !!Attente de démarrage de l'enregistrement
+            !LancementEnregistrementTarget;
+            !WaitDO ABB_0_DO1,1;
+            LumiereAsi 255,0,0,50;
+            SetLeadThrough\Off\NoStartMove\NoClearPath;
+            StartMove;
+
+        ELSE
+            SetLeadThrough\On\NoStopMove;
+            StopMove;
+            LumiereAsi 255,255,0,10;
+            !!Attente de démarrage de l'enregistrement
+            LancementEnregistrementTarget;
+            !bouton;
+            !WaitDO ABB_0_DO1,1;
+            LumiereAsi 255,0,0,50;
+            ! WaitDO ABB_0_DO1,0;
+            ! FCDeact;
+
+        ENDIF
+        !Bouton;
+        !WaitDO ABB_0_DO1,1;
+        SetLeadThrough\Off\NoStartMove\NoClearPath;
+        StopMove;
+        MyFiles{1}.NombrePosition:=NmbrePosition;
+        SauvegardeModuleTraj;
+        !!Sauvegarde de la donnée RECORD
+        ActualisationListeProgramme;
+        LumiereAsi 0,0,255,0;
+        EXIT;
+
+    ENDPROC
+
+    PROC ActualisationListeProgramme()
+        searchdir "HOME:Trajectoire";
+    ENDPROC
+
+
+    PROC LumiereAsi(num Bleu,num Rouge,num Vert,num Clignotement)
+        SetGO Asi1LedBlue,Bleu;
+        SetGO Asi1LedRed,Rouge;
+        SetGO Asi1LedGreen,Vert;
+        setgo Asi1LedPeriod,Clignotement;
+    ENDPROC
+ENDMODULE
