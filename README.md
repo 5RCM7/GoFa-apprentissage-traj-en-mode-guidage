@@ -16,7 +16,9 @@ WebApp :
 Ouvrez "Transfert de fichier" dans l'onglet "Système de commande".
 Transférez les fichiers d'application dans le dossier \HOME\WebApps du robot.
 Créez un dossier vide nommé "trajectoire".
+
 Création de signaux I/O :
+
 Créez deux signaux "digital output" : ABB_0_DO1 & ABB_0_DO2
 
                                Fonctionnement
